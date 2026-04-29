@@ -343,6 +343,8 @@ setup_nix() {
 
         local installer_script
         installer_script="$(mktemp)"
+        cleanup_installer() { rm -f "$installer_script"; }
+        trap cleanup_installer RETURN
 
         curl --proto '=https' --tlsv1.2 -sSf \
             -o "$installer_script" \
@@ -353,9 +355,13 @@ setup_nix() {
         info "Review this file before proceeding if desired."
 
         local confirm_nix_install
-        read -r -p "Run the downloaded Nix installer now? [y/N] " confirm_nix_install
+        if [[ "$NONINTERACTIVE" == true || -n "${CI:-}" ]]; then
+            confirm_nix_install="y"
+        else
+            read -r -p "Run the downloaded Nix installer now? [y/N] " confirm_nix_install
+        fi
         if [[ ! "$confirm_nix_install" =~ ^[Yy]$ ]]; then
-            warn "Nix installation cancelled. Installer saved at: ${installer_script}"
+            warn "Nix installation cancelled."
             return 0
         fi
 
