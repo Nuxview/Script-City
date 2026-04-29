@@ -341,8 +341,25 @@ setup_nix() {
             sudo pacman -S --needed --noconfirm curl
         fi
 
+        local installer_script
+        installer_script="$(mktemp)"
+
         curl --proto '=https' --tlsv1.2 -sSf \
-            https://install.determinate.systems/nix | sh -s -- install --no-confirm
+            -o "$installer_script" \
+            https://install.determinate.systems/nix
+        chmod +x "$installer_script"
+
+        info "Downloaded the Nix installer to: ${BOLD}${installer_script}${RESET}"
+        info "Review this file before proceeding if desired."
+
+        local confirm_nix_install
+        read -r -p "Run the downloaded Nix installer now? [y/N] " confirm_nix_install
+        if [[ ! "$confirm_nix_install" =~ ^[Yy]$ ]]; then
+            warn "Nix installation cancelled. Installer saved at: ${installer_script}"
+            return 0
+        fi
+
+        sh "$installer_script" -s -- install --no-confirm
 
         # Source nix into current session so subsequent steps work
         if [[ -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh ]]; then
