@@ -331,7 +331,9 @@ setup_nix() {
     local nix_conf="$HOME/.config/nix/nix.conf"
     mkdir -p "$(dirname "$nix_conf")"
 
-    if [[ -f "$nix_conf" ]] && grep -q 'experimental-features' "$nix_conf"; then
+    if [[ -f "$nix_conf" ]] \
+       && grep -Eq '^\s*experimental-features\s*=.*\bnix-command\b' "$nix_conf" \
+       && grep -Eq '^\s*experimental-features\s*=.*\bflakes\b' "$nix_conf"; then
         success "experimental-features already set in ${nix_conf}."
     else
         info "Enabling flakes and nix-command in ${nix_conf}..."
