@@ -372,4 +372,4 @@ No — unless you pass `--global`. Steps 3–5 filter strictly by the label `com
 
 ## License
 
-MIT — see [LICENSE](LICENSE) for details.
+MIT — see [LICENSE](../LICENSE) for details.

@@ -2,7 +2,7 @@
 
 ![License](https://img.shields.io/github/license/Nuxview/useful-scripts?color=blue)
 ![Repo Size](https://img.shields.io/github/repo-size/Nuxview/useful-scripts)
-![Last Commit](https://img.shields.io/github/github-hosts/last-commit/Nuxview/useful-scripts)
+![Last Commit](https://img.shields.io/github/last-commit/Nuxview/useful-scripts)
 
 A collection of comprehensive Bash scripts designed to simplify development environment setup, system maintenance, and DevOps workflows.
 

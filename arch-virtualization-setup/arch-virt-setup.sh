@@ -58,8 +58,15 @@ check_arch() {
 
 check_internet() {
     info "Checking internet connectivity..."
-    if ! ping -c1 -W3 archlinux.org &>/dev/null; then
-        die "No internet connection. Please connect and retry."
+    if command -v curl &>/dev/null; then
+        if ! curl -fsS --head --connect-timeout 5 --max-time 10 https://archlinux.org/ &>/dev/null; then
+            die "No internet connection. Please connect and retry."
+        fi
+    else
+        warn "curl not found; falling back to ping-based connectivity check."
+        if ! ping -c1 -W3 archlinux.org &>/dev/null; then
+            die "No internet connection. Please connect and retry."
+        fi
     fi
     success "Internet OK."
 }
