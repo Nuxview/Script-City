@@ -386,11 +386,82 @@ setup_nix() {
         success "experimental-features already set in ${nix_conf}."
     else
         info "Enabling flakes and nix-command in ${nix_conf}..."
-        cat >> "$nix_conf" <<'EOF'
+        local nix_conf_tmp
+        nix_conf_tmp=$(mktemp)
+
+        if [[ -f "$nix_conf" ]]; then
+            awk '
+                BEGIN {
+                    found = 0
+                    updated = 0
+                }
+                /^[[:space:]]*experimental-features[[:space:]]*=/ {
+                    found = 1
+                    if (!updated) {
+                        line = $0
+                        sub(/^[[:space:]]*experimental-features[[:space:]]*=[[:space:]]*/, "", line)
+                        sub(/[[:space:]]*#.*/, "", line)
+
+                        count = split(line, parts, /[[:space:]]+/)
+                        features = ""
+                        has_nix_command = 0
+                        has_flakes = 0
+
+                        for (i = 1; i <= count; i++) {
+                            if (parts[i] == "") {
+                                continue
+                            }
+                            if (parts[i] == "nix-command") {
+                                has_nix_command = 1
+                            }
+                            if (parts[i] == "flakes") {
+                                has_flakes = 1
+                            }
+                            if (features == "") {
+                                features = parts[i]
+                            } else {
+                                features = features " " parts[i]
+                            }
+                        }
+
+                        if (!has_nix_command) {
+                            if (features == "") {
+                                features = "nix-command"
+                            } else {
+                                features = features " nix-command"
+                            }
+                        }
+                        if (!has_flakes) {
+                            if (features == "") {
+                                features = "flakes"
+                            } else {
+                                features = features " flakes"
+                            }
+                        }
+
+                        print "experimental-features = " features
+                        updated = 1
+                    }
+                    next
+                }
+                { print }
+                END {
+                    if (!found) {
+                        print ""
+                        print "# Enabled by arch-virt-setup.sh"
+                        print "experimental-features = nix-command flakes"
+                    }
+                }
+            ' "$nix_conf" > "$nix_conf_tmp"
+        else
+            cat > "$nix_conf_tmp" <<'EOF'
 
 # Enabled by arch-virt-setup.sh
 experimental-features = nix-command flakes
 EOF
+        fi
+
+        mv "$nix_conf_tmp" "$nix_conf"
         success "flakes + nix-command enabled."
     fi
 
