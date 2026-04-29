@@ -273,12 +273,17 @@ setup_lxc() {
 
     # Enable kernel features for unprivileged containers
     info "Configuring sysctl for unprivileged containers..."
-    local sysctl_conf="/etc/sysctl.d/99-lxc.conf"
-    sudo tee "$sysctl_conf" > /dev/null <<'EOF'
+    local sysctl_conf="/etc/sysctl.d/99-arch-virt-setup-lxc.conf"
+    if sudo test -e "$sysctl_conf"; then
+        warn "Existing sysctl config found at ${sysctl_conf}; preserving current contents."
+    else
+        sudo tee "$sysctl_conf" > /dev/null <<'EOF'
 # LXC unprivileged container support
 kernel.unprivileged_userns_clone = 1
 net.ipv4.ip_forward = 1
 EOF
+        success "Created sysctl settings at ${sysctl_conf}."
+    fi
     sudo sysctl --system &>/dev/null
     success "sysctl settings applied."
 
