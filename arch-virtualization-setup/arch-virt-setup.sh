@@ -234,6 +234,7 @@ setup_kvm() {
         success "libvirtd service is running."
     else
         error "libvirtd failed to start. Check: journalctl -xe -u libvirtd"
+        return 1
     fi
 
     success "KVM setup complete."
