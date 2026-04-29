@@ -38,7 +38,7 @@ pause() {
 }
 
 helper_needed() {
-    $SETUP_LXC || $SETUP_NIX
+    $SETUP_LXC || $WANT_NIX_SEARCH_CLI
 }
 
 next_subid_start() {
@@ -151,8 +151,12 @@ setup_docker() {
     fi
 
     # Optional: install lazydocker (TUI for Docker) via AUR
-    if command -v "$AUR_HELPER" &>/dev/null; then
-        read -rp "$(echo -e "${YELLOW}Install lazydocker (Docker TUI)? [y/N]: ${RESET}")" install_lazy
+    if [[ -n "${AUR_HELPER:-}" ]] && command -v "$AUR_HELPER" &>/dev/null; then
+        if [[ "$NONINTERACTIVE" == true ]]; then
+            install_lazy="n"
+        else
+            read -rp "$(echo -e "${YELLOW}Install lazydocker (Docker TUI)? [y/N]: ${RESET}")" install_lazy
+        fi
         if [[ "${install_lazy,,}" == "y" ]]; then
             "$AUR_HELPER" -S --noconfirm lazydocker-bin
             success "lazydocker installed."
@@ -176,6 +180,10 @@ setup_kvm() {
     if [[ "$virt_flags" -eq 0 ]]; then
         warn "No vmx/svm flags found in /proc/cpuinfo."
         warn "KVM requires Intel VT-x or AMD-V enabled in your UEFI/BIOS."
+        if [[ "$NONINTERACTIVE" == true ]]; then
+            info "KVM setup skipped (non-interactive)."
+            return
+        fi
         read -rp "$(echo -e "${YELLOW}Continue anyway? [y/N]: ${RESET}")" cont
         [[ "${cont,,}" != "y" ]] && { info "KVM setup skipped."; return; }
     else
@@ -364,7 +372,11 @@ EOF
 
     # ── direnv + nix-direnv (automatic shell activation per project) ──────────
     echo
-    read -rp "$(echo -e "${YELLOW}Install direnv + nix-direnv (auto nix shell on cd)? [Y/n]: ${RESET}")" install_direnv
+    if [[ "$NONINTERACTIVE" == true ]]; then
+        install_direnv="y"
+    else
+        read -rp "$(echo -e "${YELLOW}Install direnv + nix-direnv (auto nix shell on cd)? [Y/n]: ${RESET}")" install_direnv
+    fi
     if [[ "${install_direnv,,}" != "n" ]]; then
         info "Installing direnv via pacman..."
         sudo pacman -S --needed --noconfirm direnv
@@ -435,7 +447,11 @@ EOF
 
     # ── Optional extras ───────────────────────────────────────────────────────
     echo
-    read -rp "$(echo -e "${YELLOW}Install nh (Nix helper / flake runner TUI)? [y/N]: ${RESET}")" install_nh
+    if [[ "$NONINTERACTIVE" == true ]]; then
+        install_nh="n"
+    else
+        read -rp "$(echo -e "${YELLOW}Install nh (Nix helper / flake runner TUI)? [y/N]: ${RESET}")" install_nh
+    fi
     if [[ "${install_nh,,}" == "y" ]]; then
         if command -v nix &>/dev/null; then
             nix profile install nixpkgs#nh
@@ -447,9 +463,17 @@ EOF
     fi
 
     echo
-    read -rp "$(echo -e "${YELLOW}Install nix-search-cli (search nixpkgs from terminal)? [y/N]: ${RESET}")" install_ns
+    if [[ "$NONINTERACTIVE" == true ]]; then
+        install_ns="n"
+    else
+        read -rp "$(echo -e "${YELLOW}Install nix-search-cli (search nixpkgs from terminal)? [y/N]: ${RESET}")" install_ns
+    fi
     if [[ "${install_ns,,}" == "y" ]]; then
-        if command -v "$AUR_HELPER" &>/dev/null; then
+        WANT_NIX_SEARCH_CLI=true
+        if [[ -z "${AUR_HELPER:-}" ]] || ! command -v "$AUR_HELPER" &>/dev/null; then
+            ensure_aur_helper
+        fi
+        if [[ -n "${AUR_HELPER:-}" ]] && command -v "$AUR_HELPER" &>/dev/null; then
             "$AUR_HELPER" -S --needed --noconfirm nix-search-cli
             success "nix-search-cli installed."
             echo -e "  ${CYAN}Usage:${RESET}  nix-search python"
@@ -537,14 +561,16 @@ SETUP_KVM=false
 SETUP_LXC=false
 SETUP_NIX=false
 USE_MENU=true
+NONINTERACTIVE=false
+WANT_NIX_SEARCH_CLI=false
 
 for arg in "$@"; do
     case "$arg" in
-        --docker) SETUP_DOCKER=true; USE_MENU=false ;;
-        --kvm)    SETUP_KVM=true;    USE_MENU=false ;;
-        --lxc)    SETUP_LXC=true;    USE_MENU=false ;;
-        --nix)    SETUP_NIX=true;    USE_MENU=false ;;
-        --all)    SETUP_DOCKER=true; SETUP_KVM=true; SETUP_LXC=true; SETUP_NIX=true; USE_MENU=false ;;
+        --docker) SETUP_DOCKER=true; USE_MENU=false; NONINTERACTIVE=true ;;
+        --kvm)    SETUP_KVM=true;    USE_MENU=false; NONINTERACTIVE=true ;;
+        --lxc)    SETUP_LXC=true;    USE_MENU=false; NONINTERACTIVE=true ;;
+        --nix)    SETUP_NIX=true;    USE_MENU=false; NONINTERACTIVE=true ;;
+        --all)    SETUP_DOCKER=true; SETUP_KVM=true; SETUP_LXC=true; SETUP_NIX=true; USE_MENU=false; NONINTERACTIVE=true ;;
         --help|-h)
             echo "Usage: $0 [--docker] [--kvm] [--lxc] [--nix] [--all]"
             echo "  No flags: interactive menu"

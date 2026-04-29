@@ -243,7 +243,7 @@ set `COMPOSE_PROJECT_NAME` explicitly when running.
 COMPOSE_PROJECT_NAME=myapp ./docker-prune.sh
 ```
 
-This matters for steps 3–5, which filter Docker resources by the label `com.docker.compose.project=<name>`. If the project name does not match what Compose used when the stack was originally created, those steps will find nothing — which is safe (no false deletions), but you may need to set `COMPOSE_PROJECT_NAME` explicitly to match the original name.
+This matters for steps 3–6, which filter Docker resources by the label `com.docker.compose.project=<name>`. If the project name does not match what Compose used when the stack was originally created, those steps will find nothing — which is safe (no false deletions), but you may need to set `COMPOSE_PROJECT_NAME` explicitly to match the original name.
 
 ---
 
@@ -373,7 +373,7 @@ Yes. The script auto-detects whether `docker compose` (V2, the CLI plugin) or `d
 
 **Q: Will this remove volumes from other projects?**
 
-No — unless you pass `--global`. Steps 3–5 filter strictly by the label `com.docker.compose.project=<your-project-name>`, which is unique per project.
+No — unless you pass `--global`. Steps 3–6 filter strictly by the label `com.docker.compose.project=<your-project-name>`, which is unique per project.
 
 ---
 

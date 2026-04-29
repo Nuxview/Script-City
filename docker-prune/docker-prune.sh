@@ -51,7 +51,8 @@ ${BOLD}Options:${RESET}
   -f, --force           Skip all confirmation prompts
       --no-volumes      Keep named volumes
       --no-images       Keep images
-      --no-networks     Keep project networks
+      --no-networks     Keep non-project networks (note: 'compose down' still
+            removes the default project network)
       --no-cache        Skip build-cache pruning
       --global          Also run a full system prune (affects ALL projects)
 
