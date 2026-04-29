@@ -41,6 +41,18 @@ helper_needed() {
     $SETUP_LXC || $SETUP_NIX
 }
 
+next_subid_start() {
+    local file="$1"
+    local range="$2"
+    local max_end
+    max_end=$(awk -F: 'NF>=3 { end=$2+$3; if (end>max) max=end } END { print max+0 }' "$file" 2>/dev/null)
+    if [[ -z "$max_end" || "$max_end" -eq 0 ]]; then
+        echo 100000
+    else
+        echo "$max_end"
+    fi
+}
+
 # ─── Pre-flight checks ────────────────────────────────────────────────────────
 check_root() {
     if [[ $EUID -eq 0 ]]; then
@@ -262,11 +274,16 @@ EOF
 
     # Sub-UID/GID ranges for the current user
     info "Ensuring sub-uid/sub-gid mappings for ${USER}..."
+    local subid_range=65536
     if ! grep -q "^${USER}:" /etc/subuid 2>/dev/null; then
-        echo "${USER}:100000:65536" | sudo tee -a /etc/subuid > /dev/null
+        local subuid_start
+        subuid_start=$(next_subid_start /etc/subuid "$subid_range")
+        echo "${USER}:${subuid_start}:${subid_range}" | sudo tee -a /etc/subuid > /dev/null
     fi
     if ! grep -q "^${USER}:" /etc/subgid 2>/dev/null; then
-        echo "${USER}:100000:65536" | sudo tee -a /etc/subgid > /dev/null
+        local subgid_start
+        subgid_start=$(next_subid_start /etc/subgid "$subid_range")
+        echo "${USER}:${subgid_start}:${subid_range}" | sudo tee -a /etc/subgid > /dev/null
     fi
     success "sub-uid/sub-gid ranges set."
 
