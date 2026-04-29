@@ -37,6 +37,10 @@ pause() {
     read -r
 }
 
+helper_needed() {
+    $SETUP_LXC || $SETUP_NIX
+}
+
 # ─── Pre-flight checks ────────────────────────────────────────────────────────
 check_root() {
     if [[ $EUID -eq 0 ]]; then
@@ -386,7 +390,7 @@ EOF
         mkdir -p "$direnv_lib"
         if [[ ! -f "$direnv_lib/nix-direnv.sh" ]]; then
             local nix_direnv_path
-            nix_direnv_path=$(nix eval --raw nixpkgs#nix-direnv 2>/dev/null || true)
+            nix_direnv_path=$(nix build --no-link --print-out-paths nixpkgs#nix-direnv 2>/dev/null || true)
             if [[ -n "$nix_direnv_path" ]]; then
                 echo "source ${nix_direnv_path}/share/nix-direnv/direnvrc" \
                     > "$direnv_lib/nix-direnv.sh"
@@ -395,7 +399,7 @@ EOF
                 # Fallback: use the nix profile path
                 cat > "$direnv_lib/nix-direnv.sh" <<'EOF'
 # nix-direnv integration — source the direnvrc from the nix profile
-if nix_direnv_path=$(nix eval --raw nixpkgs#nix-direnv 2>/dev/null); then
+if nix_direnv_path=$(nix build --no-link --print-out-paths nixpkgs#nix-direnv 2>/dev/null); then
   source "${nix_direnv_path}/share/nix-direnv/direnvrc"
 fi
 EOF
@@ -545,7 +549,9 @@ main() {
     fi
 
     update_system
-    ensure_aur_helper
+    if helper_needed; then
+        ensure_aur_helper
+    fi
 
     $SETUP_DOCKER && setup_docker
     $SETUP_KVM    && setup_kvm

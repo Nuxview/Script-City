@@ -91,7 +91,9 @@ done
 
 [[ -n "$COMPOSE_FILE" ]] || die "No docker-compose file found in $(pwd)"
 
-# Derive the project name (mirrors Compose's own logic)
+# Derive the project name (partial Compose precedence)
+# Note: this does not parse a top-level 'name:' from the compose file.
+# If you rely on that, set COMPOSE_PROJECT_NAME explicitly when running.
 PROJECT_NAME="$(basename "$(pwd)")"
 # Allow override via COMPOSE_PROJECT_NAME env variable (standard Compose behaviour)
 PROJECT_NAME="${COMPOSE_PROJECT_NAME:-$PROJECT_NAME}"
@@ -103,10 +105,10 @@ done
 
 # Detect whether to use 'docker compose' (V2) or 'docker-compose' (V1)
 if docker compose version &>/dev/null 2>&1; then
-  DC="docker compose"
+  DC=(docker compose)
 else
   command -v docker-compose &>/dev/null || die "Neither 'docker compose' (V2) nor 'docker-compose' (V1) found"
-  DC="docker-compose"
+  DC=(docker-compose)
 fi
 
 # ── Banner ────────────────────────────────────────────────────────────────────
@@ -132,19 +134,22 @@ fi
 
 # ── Utility: run or echo ──────────────────────────────────────────────────────
 run() {
+  local cmd=("$@");
   if [[ "$DRY_RUN" == true ]]; then
-    echo -e "  ${DIM}[dry-run]${RESET} $*"
+    printf '  %b[dry-run]%b ' "${DIM}" "${RESET}"
+    printf '%s ' "${cmd[@]}"
+    echo
   else
-    eval "$@"
+    "${cmd[@]}"
   fi
 }
 
 # ── 1. Stop running containers ────────────────────────────────────────────────
 sep
-log "Step 1/6 — Stopping running containers …"
-RUNNING=$($DC -f "$COMPOSE_FILE" ps -q 2>/dev/null || true)
+log "Step 1/7 — Stopping running containers …"
+RUNNING=$("${DC[@]}" -f "$COMPOSE_FILE" ps -q 2>/dev/null || true)
 if [[ -n "$RUNNING" ]]; then
-  run "$DC -f '$COMPOSE_FILE' stop"
+  run "${DC[@]}" -f "$COMPOSE_FILE" stop
   success "Containers stopped."
 else
   log "No running containers found."
@@ -152,21 +157,21 @@ fi
 
 # ── 2. Bring down project (containers + networks + optional volumes) ───────────
 sep
-log "Step 2/6 — Removing containers and project networks …"
+log "Step 2/7 — Removing containers and project networks …"
 DOWN_FLAGS="--remove-orphans"
 $PRUNE_VOLUMES  && DOWN_FLAGS="$DOWN_FLAGS --volumes"
 $PRUNE_IMAGES   && DOWN_FLAGS="$DOWN_FLAGS --rmi all"
 
-run "$DC -f '$COMPOSE_FILE' down $DOWN_FLAGS"
+run "${DC[@]}" -f "$COMPOSE_FILE" down $DOWN_FLAGS
 success "Compose stack removed."
 
 # ── 3. Remove any leftover containers for this project ────────────────────────
 sep
-log "Step 3/6 — Checking for orphaned containers …"
+log "Step 3/7 — Checking for orphaned containers …"
 ORPHANS=$(docker ps -a --filter "label=com.docker.compose.project=${PROJECT_NAME}" -q 2>/dev/null || true)
 if [[ -n "$ORPHANS" ]]; then
   log "Found orphaned containers: ${ORPHANS}"
-  run "docker rm -f $ORPHANS"
+  run docker rm -f $ORPHANS
   success "Orphaned containers removed."
 else
   log "No orphaned containers."
@@ -175,41 +180,56 @@ fi
 # ── 4. Remove project images (if not already removed by 'down --rmi all') ─────
 if [[ "$PRUNE_IMAGES" == true ]]; then
   sep
-  log "Step 4/6 — Removing project images …"
+  log "Step 4/7 — Removing project images …"
   IMG_IDS=$(docker images --filter "label=com.docker.compose.project=${PROJECT_NAME}" -q 2>/dev/null || true)
   if [[ -n "$IMG_IDS" ]]; then
-    run "docker rmi -f $IMG_IDS"
+    run docker rmi -f $IMG_IDS
     success "Project images removed."
   else
     log "No project-labelled images found (already cleaned or externally sourced)."
   fi
 else
-  log "Step 4/6 — Skipping image removal (--no-images)."
+  log "Step 4/7 — Skipping image removal (--no-images)."
 fi
 
-# ── 5. Remove project volumes (if not already removed by 'down --volumes') ────
+# ── 5. Remove project networks (if any remain after 'compose down') ───────────
+if [[ "$PRUNE_NETWORKS" == true ]]; then
+  sep
+  log "Step 5/7 — Removing project networks …"
+  NET_IDS=$(docker network ls --filter "label=com.docker.compose.project=${PROJECT_NAME}" -q 2>/dev/null || true)
+  if [[ -n "$NET_IDS" ]]; then
+    run docker network rm $NET_IDS
+    success "Project networks removed."
+  else
+    log "No project-labelled networks found."
+  fi
+else
+  log "Step 5/7 — Skipping network removal (--no-networks)."
+fi
+
+# ── 6. Remove project volumes (if not already removed by 'down --volumes') ────
 if [[ "$PRUNE_VOLUMES" == true ]]; then
   sep
-  log "Step 5/6 — Removing project volumes …"
+  log "Step 6/7 — Removing project volumes …"
   VOL_IDS=$(docker volume ls --filter "label=com.docker.compose.project=${PROJECT_NAME}" -q 2>/dev/null || true)
   if [[ -n "$VOL_IDS" ]]; then
-    run "docker volume rm -f $VOL_IDS"
+    run docker volume rm -f $VOL_IDS
     success "Project volumes removed."
   else
     log "No project-labelled volumes found."
   fi
 else
-  log "Step 5/6 — Skipping volume removal (--no-volumes)."
+  log "Step 6/7 — Skipping volume removal (--no-volumes)."
 fi
 
-# ── 6. Build cache ────────────────────────────────────────────────────────────
+# ── 7. Build cache ────────────────────────────────────────────────────────────
 if [[ "$PRUNE_BUILD_CACHE" == true ]]; then
   sep
-  log "Step 6/6 — Pruning Docker build cache …"
-  run "docker builder prune -f"
+  log "Step 7/7 — Pruning Docker build cache …"
+  run docker builder prune -f
   success "Build cache cleared."
 else
-  log "Step 6/6 — Skipping build cache (--no-cache)."
+  log "Step 7/7 — Skipping build cache (--no-cache)."
 fi
 
 # ── Optional: global system prune ─────────────────────────────────────────────
@@ -218,7 +238,7 @@ if [[ "$GLOBAL_PRUNE" == true ]]; then
   warn "Running global system prune (all unused resources, ALL projects) …"
   GLOBAL_FLAGS="-f"
   $PRUNE_VOLUMES && GLOBAL_FLAGS="$GLOBAL_FLAGS --volumes"
-  run "docker system prune $GLOBAL_FLAGS"
+  run docker system prune $GLOBAL_FLAGS
   success "Global system prune complete."
 fi
 

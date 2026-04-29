@@ -41,15 +41,16 @@ Passing every flag every time is tedious and error-prone. `docker-prune.sh` wrap
 
 ## How it works
 
-The script performs six sequential cleanup steps, all scoped to the Compose project in the current directory:
+The script performs seven sequential cleanup steps, all scoped to the Compose project in the current directory:
 
 ```
 Step 1  →  Stop all running project containers
 Step 2  →  docker compose down (removes containers, networks, volumes, images)
 Step 3  →  Force-remove any orphaned containers by project label
 Step 4  →  Force-remove any remaining project-labelled images
-Step 5  →  Force-remove any remaining project-labelled volumes
-Step 6  →  docker builder prune (clears the build cache)
+Step 5  →  Force-remove any remaining project-labelled networks
+Step 6  →  Force-remove any remaining project-labelled volumes
+Step 7  →  docker builder prune (clears the build cache)
 ```
 
 Each step reports its status with coloured log output (`[INFO]`, `[ OK ]`, `[WARN]`, `[ERR ]`). If a step finds nothing to clean up it skips gracefully — no errors, no noise.
@@ -119,7 +120,7 @@ Without any flags the script will:
 
 1. Detect your compose file and project name.
 2. Show a confirmation prompt listing what will be deleted.
-3. Execute all six cleanup steps on confirmation.
+3. Execute all seven cleanup steps on confirmation.
 
 ### All options
 
@@ -133,8 +134,7 @@ Options:
   -f, --force       Skip the confirmation prompt (useful in CI/CD)
       --no-volumes  Keep named volumes, skip volume removal steps
       --no-images   Keep images, skip image removal steps
-      --no-networks Keep project networks (networks are still removed by
-                    'compose down'; this flag suppresses the label sweep)
+      --no-networks Keep project networks. Note: 'compose down' still removes the default project network; this flag only skips the label-based network sweep.
       --no-cache    Skip 'docker builder prune'
       --global      After project cleanup, also run 'docker system prune'
                     to remove ALL dangling resources across every project
@@ -198,7 +198,17 @@ docker rmi -f $(docker images --filter "label=com.docker.compose.project=<name>"
 
 Removes images that carry the project label. This catches images built locally with `docker compose build` that `compose down --rmi all` may not fully clean up, for example when image names were changed between runs.
 
-### Step 5 — Volume sweep
+### Step 5 — Network sweep
+
+```bash
+docker network rm $(docker network ls --filter "label=com.docker.compose.project=<name>" -q)
+```
+
+Removes any remaining project-labelled networks after `compose down`. The
+default project network created by Compose is still removed by `compose down`
+even when `--no-networks` is set.
+
+### Step 6 — Volume sweep
 
 ```bash
 docker volume rm -f $(docker volume ls --filter "label=com.docker.compose.project=<name>" -q)
@@ -206,7 +216,7 @@ docker volume rm -f $(docker volume ls --filter "label=com.docker.compose.projec
 
 Removes named volumes that carry the project label. Complements `compose down --volumes`, which only removes volumes declared in the compose file's `volumes:` section — this sweep catches any volumes created at runtime.
 
-### Step 6 — Build cache prune
+### Step 7 — Build cache prune
 
 ```bash
 docker builder prune -f
@@ -220,10 +230,13 @@ Clears the entire Docker BuildKit cache. This is a **global** operation (Docker 
 
 ## Project name resolution
 
-The script derives the project name using the same logic Docker Compose itself uses:
+The script derives the project name using Compose-style logic, with one caveat:
 
 1. If the environment variable `COMPOSE_PROJECT_NAME` is set, that value is used.
 2. Otherwise, the name defaults to the **basename of the current working directory**.
+
+It does not parse a top-level `name:` from the compose file. If you rely on that,
+set `COMPOSE_PROJECT_NAME` explicitly when running.
 
 ```bash
 # Override the project name without renaming your directory
@@ -270,13 +283,13 @@ Example output:
 [INFO]  Project name : my-app
 [INFO]  Dry-run mode : true
 ──────────────────────────────────────────────────
-[INFO]  Step 1/6 — Stopping running containers …
-  [dry-run] docker compose -f 'docker-compose.yml' stop
+[INFO]  Step 1/7 — Stopping running containers …
+  [dry-run] docker compose -f docker-compose.yml stop
 ──────────────────────────────────────────────────
-[INFO]  Step 2/6 — Removing containers and project networks …
-  [dry-run] docker compose -f 'docker-compose.yml' down --remove-orphans --volumes --rmi all
+[INFO]  Step 2/7 — Removing containers and project networks …
+  [dry-run] docker compose -f docker-compose.yml down --remove-orphans --volumes --rmi all
 ──────────────────────────────────────────────────
-[INFO]  Step 3/6 — Checking for orphaned containers …
+[INFO]  Step 3/7 — Checking for orphaned containers …
   [dry-run] docker rm -f <ids>
 ...
 
@@ -312,9 +325,9 @@ This removes **all** unused Docker resources on the host — dangling images, st
 
 **Confirmation prompt** — without `--force`, the script always asks before deleting anything. Type `y` or `yes` to proceed; anything else (including pressing Enter without typing) aborts cleanly.
 
-**Scope** — steps 1–5 are strictly scoped to the current project by Docker label. Resources belonging to other projects are never touched unless `--global` is passed.
+**Scope** — steps 1–6 are strictly scoped to the current project by Docker label. Resources belonging to other projects are never touched unless `--global` is passed.
 
-**Build cache** — step 6 (`docker builder prune`) is the only inherently global step. Pass `--no-cache` to preserve cache layers shared with other projects on the same host.
+**Build cache** — step 7 (`docker builder prune`) is the only inherently global step. Pass `--no-cache` to preserve cache layers shared with other projects on the same host.
 
 **Irreversibility** — deleted volumes and their contents cannot be recovered. Always run `--dry-run` first if you are unsure, and ensure important data (e.g. database volumes) is either backed up or excluded with `--no-volumes`.
 

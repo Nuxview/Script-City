@@ -1,6 +1,6 @@
 # Arch Virtualization and Containerization Setup
 
-A single Bash script that sets up a complete development and virtualisation
+A single Bash script that sets up a complete development and virtualization
 environment on any **Arch-based Linux distribution** — Arch, CachyOS,
 Manjaro, EndeavourOS, Garuda, and more.
 
@@ -22,21 +22,22 @@ It can install any combination of:
 - An active internet connection
 
 No other setup needed — the script handles everything else, including
-installing an AUR helper (`yay`) if one isn't already present.
+installing an AUR helper (`yay`) when a selected stack needs AUR packages.
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Clone the repo
-git clone git@github.com:Nixjoyer/arch-virtualization-setup.git
-cd arch-virtualization-setup
-
-# 2. Make the script executable
+# Option A: clone the full repo
+git clone https://github.com/Nuxview/useful-scripts.git
+cd useful-scripts/arch-virtualization-setup
 chmod +x arch-virt-setup.sh
+./arch-virt-setup.sh
 
-# 3. Run it
+# Option B: download just the script
+curl -O https://raw.githubusercontent.com/Nuxview/useful-scripts/main/arch-virtualization-setup/arch-virt-setup.sh
+chmod +x arch-virt-setup.sh
 ./arch-virt-setup.sh
 ```
 
