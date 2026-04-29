@@ -148,6 +148,7 @@ setup_docker() {
         success "Docker service is running."
     else
         error "Docker service failed to start. Check: journalctl -xe -u docker"
+        return 1
     fi
 
     # Optional: install lazydocker (TUI for Docker) via AUR
