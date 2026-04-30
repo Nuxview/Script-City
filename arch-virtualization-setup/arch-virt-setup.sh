@@ -290,15 +290,16 @@ EOF
     # Sub-UID/GID ranges for the current user
     info "Ensuring sub-uid/sub-gid mappings for ${USER}..."
     local subid_range=65536
-    if ! grep -q "^${USER}:" /etc/subuid 2>/dev/null; then
+    if ! awk -F: -v user="$USER" '$1 == user { found=1; exit } END { exit found ? 0 : 1 }' /etc/subuid 2>/dev/null; then
         local subuid_start
         subuid_start=$(next_subid_start /etc/subuid "$subid_range")
         echo "${USER}:${subuid_start}:${subid_range}" | sudo tee -a /etc/subuid > /dev/null
     fi
-    if ! grep -q "^${USER}:" /etc/subgid 2>/dev/null; then
+    if ! awk -F: -v user="$USER" '$1 == user { found=1; exit } END { exit found ? 0 : 1 }' /etc/subgid 2>/dev/null; then
         local subgid_start
         subgid_start=$(next_subid_start /etc/subgid "$subid_range")
         echo "${USER}:${subgid_start}:${subid_range}" | sudo tee -a /etc/subgid > /dev/null
+    fi
     fi
     success "sub-uid/sub-gid ranges set."
 
