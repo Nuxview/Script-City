@@ -373,7 +373,7 @@ Yes. The script auto-detects whether `docker compose` (V2, the CLI plugin) or `d
 
 **Q: Will this remove volumes from other projects?**
 
-No — unless you pass `--global`. Steps 3–6 filter strictly by the label `com.docker.compose.project=<your-project-name>`, which is unique per project.
+Usually no — unless you pass `--global` or another stack on the same host uses the same Compose project name. Steps 3–6 filter by `com.docker.compose.project=<your-project-name>`, so set a unique `COMPOSE_PROJECT_NAME` per stack to avoid overlap.
 
 ---
 
