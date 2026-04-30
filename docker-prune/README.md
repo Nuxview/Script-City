@@ -1,6 +1,6 @@
 # docker-prune
 
-> A compose-aware Docker cleanup utility that surgically removes every resource tied to the project in your current directory — containers, images, volumes, networks, and build cache — without touching unrelated projects.
+> A compose-aware Docker cleanup utility that removes resources tied to the project in your current directory — containers, images, volumes, and networks — and can also prune Docker build cache (global scope).
 
 ---
 
