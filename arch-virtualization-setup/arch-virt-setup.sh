@@ -300,7 +300,6 @@ EOF
         subgid_start=$(next_subid_start /etc/subgid "$subid_range")
         echo "${USER}:${subgid_start}:${subid_range}" | sudo tee -a /etc/subgid > /dev/null
     fi
-    fi
     success "sub-uid/sub-gid ranges set."
 
     # Enable and start LXD if installed
