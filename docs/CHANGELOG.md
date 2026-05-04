@@ -4,6 +4,33 @@ All notable changes to this repository are documented here in reverse-chronologi
 
 ---
 
+## [ac31a90] — 2026-05-04T21:08:53+03:00
+
+**Full SHA:** `ac31a906e87811854a5690cfdd6228b234c690a5`  
+**Author:** Shaka Maina  
+**Subject:** fix: update README.md code block formatting to use '```text'
+
+**Changed files:**
+- `arch-virtualization-setup/arch-virt-setup.sh` — 21 insertions, 9 deletions
+- `docker-prune/README.md` — 4 insertions, 4 deletions
+
+**Summary:** Updated fenced code blocks in the help-text and README to use ` ```text ` instead of plain ` ``` ` so syntax highlighting is consistent and renderers do not try to apply language-specific colouring to plain terminal output.
+
+---
+
+## [23db5ae] — 2026-05-04T17:52:20Z
+
+**Full SHA:** `23db5aee069178e441f0226ec494ae203a5fcbb3`  
+**Author:** copilot-swe-agent[bot]  
+**Subject:** docs: add docs/CHANGELOG.md with full commit history
+
+**Changed files:**
+- `docs/CHANGELOG.md` — 252 insertions (new file)
+
+**Summary:** Created the `docs/` directory and this `CHANGELOG.md` file, listing all previous commits in reverse-chronological order with full SHA, short hash, ISO 8601 timestamp, author, changed files, and a plain-English summary.
+
+---
+
 ## [fae5e6a] — 2026-05-03T20:20:46Z
 
 **Full SHA:** `fae5e6ace2654f0eff3447906f29fc7e54e8f04d`  
