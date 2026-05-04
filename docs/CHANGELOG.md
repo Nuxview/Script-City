@@ -4,6 +4,19 @@ All notable changes to this repository are documented here in reverse-chronologi
 
 ---
 
+## [e86d589] — 2026-05-04T19:02:25Z
+
+**Full SHA:** `e86d589d94b4aadf0533bfee69ecdae6c89ab23a`  
+**Author:** copilot-swe-agent[bot]  
+**Subject:** docs: append latest commit entry to docs/CHANGELOG.md
+
+**Changed files:**
+- `docs/CHANGELOG.md` — 27 insertions
+
+**Summary:** Appended entries for commits `23db5ae` (initial CHANGELOG creation) and `ac31a90` (code-block formatting fix) to the changelog, keeping it current with the full commit history.
+
+---
+
 ## [ac31a90] — 2026-05-04T21:08:53+03:00
 
 **Full SHA:** `ac31a906e87811854a5690cfdd6228b234c690a5`  
