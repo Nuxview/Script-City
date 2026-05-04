@@ -43,7 +43,7 @@ Passing every flag every time is tedious and error-prone. `docker-prune.sh` wrap
 
 The script performs seven sequential cleanup steps, all scoped to the Compose project in the current directory:
 
-```
+```text
 Step 1  →  Stop all running project containers
 Step 2  →  docker compose down (removes containers, networks, volumes, images)
 Step 3  →  Force-remove any orphaned containers by project label
@@ -75,7 +75,7 @@ The script checks for all dependencies at startup and exits with a clear error m
 
 Place `docker-prune.sh` directly in the root of your project, next to your `docker-compose.yml`:
 
-```
+```text
 my-project/
 ├── docker-compose.yml
 ├── docker-prune.sh   ← here
@@ -124,7 +124,7 @@ Without any flags the script will:
 
 ### All options
 
-```
+```text
 Usage:
   docker-prune.sh [OPTIONS]
 
@@ -274,7 +274,7 @@ Every command that *would* be executed is printed to stdout prefixed with `[dry-
 
 Example output:
 
-```
+```text
 ╔══════════════════════════════════════════════╗
 ║        Docker Compose — Prune Utility        ║
 ╚══════════════════════════════════════════════╝

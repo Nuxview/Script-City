@@ -168,6 +168,7 @@ setup_docker() {
     warn "Docker group membership requires a new login session (or run: newgrp docker)."
     success "Docker setup complete."
     echo -e "  ${CYAN}Test with:${RESET}  docker run --rm hello-world"
+    DONE_DOCKER=true
 }
 
 # ─── KVM ──────────────────────────────────────────────────────────────────────
@@ -240,6 +241,7 @@ setup_kvm() {
     success "KVM setup complete."
     echo -e "  ${CYAN}Launch manager:${RESET}  virt-manager"
     echo -e "  ${CYAN}CLI interface:${RESET}   virsh list --all"
+    DONE_KVM=true
 }
 
 # ─── LXC ──────────────────────────────────────────────────────────────────────
@@ -318,6 +320,7 @@ EOF
     echo -e "  ${CYAN}Initialize LXD:${RESET}   sudo lxd init"
     echo -e "  ${CYAN}Launch container:${RESET} lxc launch ubuntu:22.04 mycontainer"
     echo -e "  ${CYAN}List containers:${RESET}  lxc list"
+    DONE_LXC=true
 }
 
 # ─── Nix ──────────────────────────────────────────────────────────────────────
@@ -329,6 +332,7 @@ setup_nix() {
         NIX_VERSION=$(nix --version 2>/dev/null || echo "unknown")
         success "Nix is already installed: ${BOLD}${NIX_VERSION}${RESET}"
         info "Skipping installer — jumping straight to configuration."
+        DONE_NIX=true
     else
         # ── Determinate Systems installer (recommended for non-NixOS) ─────────
         info "Installing Nix via the Determinate Systems installer..."
@@ -343,7 +347,10 @@ setup_nix() {
 
         local installer_script
         installer_script="$(mktemp)"
-        cleanup_installer() { rm -f "$installer_script"; }
+        cleanup_installer() { 
+            rm -f -- "${installer_script:-}"
+            trap - RETURN
+        }
         trap cleanup_installer RETURN
 
         curl --proto '=https' --tlsv1.2 -sSf \
@@ -375,6 +382,7 @@ setup_nix() {
 
         if command -v nix &>/dev/null; then
             success "Nix installed: $(nix --version)"
+            DONE_NIX=true
         else
             error "Nix binary not found after install. You may need to open a new shell."
             error "Re-run this section after sourcing: /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
@@ -599,19 +607,19 @@ print_summary() {
 
     echo -e "${BOLD}What was installed / configured:${RESET}"
 
-    $SETUP_DOCKER && echo -e "  ${GREEN}✔${RESET} Docker + Docker Compose + Docker Buildx"
-    $SETUP_KVM    && echo -e "  ${GREEN}✔${RESET} QEMU-Full + libvirt + virt-manager + bridge tools"
-    $SETUP_LXC    && echo -e "  ${GREEN}✔${RESET} LXC + LXD (from AUR) + sysctl tweaks + sub-uid mappings"
-    $SETUP_NIX    && echo -e "  ${GREEN}✔${RESET} Nix (Determinate) + flakes + nix-command + direnv/nix-direnv"
+    $DONE_DOCKER && echo -e "  ${GREEN}✔${RESET} Docker + Docker Compose + Docker Buildx"
+    $DONE_KVM    && echo -e "  ${GREEN}✔${RESET} QEMU-Full + libvirt + virt-manager + bridge tools"
+    $DONE_LXC    && echo -e "  ${GREEN}✔${RESET} LXC + LXD (from AUR) + sysctl tweaks + sub-uid mappings"
+    $DONE_NIX    && echo -e "  ${GREEN}✔${RESET} Nix (Determinate) + flakes + nix-command + direnv/nix-direnv"
 
     echo
     warn "Group changes require a new login session to take effect."
     warn "To apply immediately (per group):"
-    $SETUP_DOCKER && echo -e "   ${CYAN}newgrp docker${RESET}"
-    $SETUP_KVM    && echo -e "   ${CYAN}newgrp libvirt${RESET}"
-    $SETUP_LXC    && echo -e "   ${CYAN}newgrp lxd${RESET}"
+    $DONE_DOCKER && echo -e "   ${CYAN}newgrp docker${RESET}"
+    $DONE_KVM    && echo -e "   ${CYAN}newgrp libvirt${RESET}"
+    $DONE_LXC    && echo -e "   ${CYAN}newgrp lxd${RESET}"
 
-    if $SETUP_NIX; then
+    if $DONE_NIX; then
         echo
         warn "Nix: open a new shell (or source the daemon profile) to use nix commands:"
         echo -e "   ${CYAN}source /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh${RESET}"
@@ -664,6 +672,10 @@ SETUP_NIX=false
 USE_MENU=true
 NONINTERACTIVE=false
 WANT_NIX_SEARCH_CLI=false
+DONE_DOCKER=false
+DONE_KVM=false
+DONE_LXC=false
+DONE_NIX=false
 
 for arg in "$@"; do
     case "$arg" in
