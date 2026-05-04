@@ -1,4 +1,4 @@
-# Useful Scripts
+# Script City
 
 ![License](https://img.shields.io/github/license/Nuxview/useful-scripts?color=blue)
 ![Repo Size](https://img.shields.io/github/repo-size/Nuxview/useful-scripts)
